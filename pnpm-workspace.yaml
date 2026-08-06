@@ -1,0 +1,8 @@
+# pnpm默认禁止依赖跑构建脚本；electron的postinstall要下载二进制，放行。
+# allowBuilds是pnpm 11+的写法，onlyBuiltDependencies兼容pnpm 10。
+allowBuilds:
+  electron: true
+  esbuild: true
+onlyBuiltDependencies:
+  - electron
+  - esbuild
