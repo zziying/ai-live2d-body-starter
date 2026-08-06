@@ -25,7 +25,7 @@
 - **Cubism 2的老模型不支持**（`.moc` 不带3、`model.json` 不带3）。现在市面上基本都是Cubism 3/4/5，一般只有远古免费素材会撞上
 - **参数命名没有要求。** 标准命名开箱即用；建模师自己起的名字（脸红/流泪这类特效基本都是自定义参数）走 `pet.config.json` 配一遍就行，方法见 [docs/model-adaptation.md](docs/model-adaptation.md)
 
-还没买模型？先拿 [Live2D官方免费示例模型](https://www.live2d.com/zh-CHS/learn/sample/) 把整条链路跑通，确认能玩再花钱——那时你也知道买模型该问什么了。
+还没买模型？先拿 [Live2D官方免费示例模型](https://www.live2d.com/en/learn/sample/) 把整条链路跑通，确认能玩再花钱——那时你也知道买模型该问什么了。
 
 ## Quick Start
 
