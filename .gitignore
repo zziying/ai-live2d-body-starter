@@ -1,0 +1,19 @@
+# deps / build
+node_modules/
+out/
+dist/
+
+# Live2D Cubism Core — Live2D专有软件，不随repo分发（postinstall自动从官方CDN下载）
+src/renderer/public/live2dcubismcore.min.js
+
+# 你的模型文件不要提交（版权归模型作者）
+src/renderer/public/model/*
+!src/renderer/public/model/.gitkeep
+
+# 运行时产物
+audio/*
+!audio/.gitkeep
+
+# misc
+.DS_Store
+*.log

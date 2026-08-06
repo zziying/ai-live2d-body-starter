@@ -1,0 +1,30 @@
+{
+  "name": "live2d-pet-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "给你家AI装一个Live2D身体 — 无大脑桌宠starter（渲染层+传感器+身体API）",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "postinstall": "node scripts/fetch-cubism-core.mjs"
+  },
+  "dependencies": {
+    "pixi-live2d-display-lipsyncpatch": "^0.5.0-ls-8",
+    "pixi.js": "^7.4.2",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "electron": "^35.1.5",
+    "electron-vite": "^3.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  }
+}

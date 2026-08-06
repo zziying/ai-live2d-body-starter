@@ -1,0 +1,45 @@
+{
+  "$comment": "桌宠唯一配置文件。改完重启生效（pnpm dev 会自动重启main进程）。各字段说明见 docs/config.md",
+
+  "model": {
+    "path": "model/your-model.model3.json",
+    "heightRatio": 1.0,
+    "x": 0.5,
+    "y": 0.5
+  },
+
+  "window": {
+    "width": 420,
+    "height": 640,
+    "transparent": true,
+    "alwaysOnTop": true,
+    "fullscreen": false,
+    "display": "primary"
+  },
+
+  "port": 3470,
+
+  "name": "Pet",
+
+  "inject": {
+    "mode": "none",
+    "tmuxTarget": "claude:0.0",
+    "command": null,
+    "messages": {
+      "stroke": "[pet-touch] 你被摸摸了！",
+      "double": "[pet-touch] 你被戳了一下！",
+      "dizzy": "[pet-touch] 你被晃晕了！"
+    }
+  },
+
+  "tts": {
+    "command": null,
+    "output": "audio/speak.mp3"
+  },
+
+  "defaultFace": {},
+
+  "expressions": {},
+
+  "dizzyExtras": {}
+}
