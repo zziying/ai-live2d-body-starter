@@ -12,9 +12,20 @@
 
 ## 你需要准备什么
 
-- **一个Live2D模型**（Cubism 3/4/5格式，即 `.model3.json` + `.moc3` + 贴图）。本repo不含模型——买的、免费的、自己建的都行，注意**加密模型加载不了**（部分商用模型会加密moc3，买之前问清楚）
+- **一个Live2D模型**（要求见下）
 - **Node.js 18+ 和 pnpm**（`npm i -g pnpm`）
 - macOS或Windows（在macOS上开发测试，Windows理论可用）
+
+### 关于模型：买之前先看这段（真金白银的教训）
+
+对模型只有一个硬要求：**拿到手的必须是"裸文件"**——一个文件夹，里面有 `.model3.json` + `.moc3` + 贴图，可能还有 `physics3.json`（物理）和 `cdi3.json`（参数表，有它配表情舒服很多）。
+
+- **判断标准一句话：能导入VTube Studio的模型就能用。** 下单前问卖家："是否提供model3.json素材文件/可导入VTS？"
+- **加密模型无解。** 部分商用模型只给一个exe或专用启动器，moc3是加密的——任何第三方框架（包括本starter）都加载不了，买了就是白花钱（我们的第一个模型就这么阵亡的）
+- **Cubism 2的老模型不支持**（`.moc` 不带3、`model.json` 不带3）。现在市面上基本都是Cubism 3/4/5，一般只有远古免费素材会撞上
+- **参数命名没有要求。** 标准命名开箱即用；建模师自己起的名字（脸红/流泪这类特效基本都是自定义参数）走 `pet.config.json` 配一遍就行，方法见 [docs/model-adaptation.md](docs/model-adaptation.md)
+
+还没买模型？先拿 [Live2D官方免费示例模型](https://www.live2d.com/zh-CHS/learn/sample/) 把整条链路跑通，确认能玩再花钱——那时你也知道买模型该问什么了。
 
 ## Quick Start
 
