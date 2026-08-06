@@ -1,4 +1,5 @@
-// 每帧有序参数管线。我们不跑SDK motion（autoInteract: false），所以一条链就是全部：
+// 每帧有序参数管线（分层思想提炼自 moeru-ai/airi 的 motion-manager 插件阶段）。
+// 我们不跑SDK motion（autoInteract: false），所以一条链就是全部：
 // 注册顺序即层叠顺序，后注册的插件覆盖先注册的。
 import type { IdleBehavior } from './idle'
 

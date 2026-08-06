@@ -1,4 +1,4 @@
-// 弹簧-阻尼头部动力学（semi-implicit Euler）。
+// 弹簧-阻尼头部动力学（semi-implicit Euler），积分器写法借鉴 moeru-ai/airi。
 // 不用lerp追目标，让物理去追：会过冲、会回弹，目标跳变（比如动作播完）时速度连续不跳变。
 
 export interface SpringTuning {

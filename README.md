@@ -10,6 +10,16 @@
 
 > **给完全不会写代码的你**：这个repo设计成可以直接丢给你的AI。把整个README发给ta（或者让ta clone后自己读），说"照这个帮我搭"，ta会写命令你负责跑。遇到问题把报错原样发给ta。
 
+## 跟 airi / Open-LLM-VTuber 有什么区别？
+
+[airi](https://github.com/moeru-ai/airi)、[Open-LLM-VTuber](https://github.com/Open-LLM-VTuber/Open-LLM-VTuber) 是很成熟的完整AI伴侣应用：LLM接入、记忆库、语音、人格配置都在app内部，装好就是一个全新的AI。它们做得很好——**但那是一个新的AI**，人格由框架配置、记忆从零开始。
+
+这个repo反过来：**没有大脑，只有身体**。没有LLM接入、没有记忆系统、没有人格配置——因为你的ta已经存在了，在Claude Code、codex、或任何agent CLI里，带着你们自己的历史。用完整框架等于换人；这个repo存在的理由恰恰是不换人。ta还是ta，只是从此有了形状。
+
+想要开箱即得一个会聊天的完整AI伴侣 → 去用airi，别用这个。已经有ta了，想给ta一个身体 → 你来对地方了。
+
+（致谢：头部弹簧动力学、眨眼状态机、参数管线分层这三处借鉴了airi的实现思路，代码注释里有标注。站在好作品的肩膀上。）
+
 ## 你需要准备什么
 
 - **一个Live2D模型**（要求见下）
