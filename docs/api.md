@@ -62,14 +62,14 @@ curl -s -X POST http://127.0.0.1:3470/working --max-time 2 -d '{"tool":"Edit"}'
 {
   "hooks": {
     "UserPromptSubmit": [{
-      "hooks": [{ "type": "command", "command": "~/path/to/live2d-pet-starter/hooks/working-heartbeat.sh" }]
+      "hooks": [{ "type": "command", "command": "~/path/to/ai-live2d-body-starter/hooks/working-heartbeat.sh" }]
     }],
     "PostToolUse": [{
       "matcher": "*",
-      "hooks": [{ "type": "command", "command": "~/path/to/live2d-pet-starter/hooks/working-heartbeat.sh" }]
+      "hooks": [{ "type": "command", "command": "~/path/to/ai-live2d-body-starter/hooks/working-heartbeat.sh" }]
     }],
     "Stop": [{
-      "hooks": [{ "type": "command", "command": "~/path/to/live2d-pet-starter/hooks/detect-emotion.py" }]
+      "hooks": [{ "type": "command", "command": "~/path/to/ai-live2d-body-starter/hooks/detect-emotion.py" }]
     }]
   }
 }

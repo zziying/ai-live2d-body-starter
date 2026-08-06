@@ -1,4 +1,4 @@
-# live2d-pet-starter
+# ai-live2d-body-starter
 
 给你家AI装一个Live2D身体。
 
@@ -19,7 +19,7 @@
 ## Quick Start
 
 ```bash
-git clone <this-repo> && cd live2d-pet-starter
+git clone https://github.com/zziying/ai-live2d-body-starter.git && cd ai-live2d-body-starter
 pnpm install          # 会自动下载Live2D Cubism Core到public目录
 ```
 
