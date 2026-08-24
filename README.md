@@ -35,7 +35,7 @@
 - **Cubism 2的老模型不支持**（`.moc` 不带3、`model.json` 不带3）。现在市面上基本都是Cubism 3/4/5，一般只有远古免费素材会撞上
 - **参数命名没有要求。** 标准命名开箱即用；建模师自己起的名字（脸红/流泪这类特效基本都是自定义参数）走 `pet.config.json` 配一遍就行，方法见 [docs/model-adaptation.md](docs/model-adaptation.md)
 
-还没买模型？先拿 [Live2D官方免费示例模型](https://www.live2d.com/en/learn/sample/) 把整条链路跑通，确认能玩再花钱——那时你也知道买模型该问什么了。
+还没买模型？先拿 [Live2D官方免费示例模型](https://www.live2d.com/en/learn/sample/) 把整条链路跑通，确认能玩再花钱——那时你也知道买模型该问什么了。桃瀬ひより（Hiyori）可以直接下：`curl -LO https://cubism.live2d.com/sample-data/bin/hiyori/hiyori_en.zip`，解压后 `hiyori_free/runtime/` 就是能用的裸文件（下载页的链接埋在JS里，AI帮你搭的时候给ta这条直链能省不少事；使用注意遵官方示例模型条款）。
 
 ## Quick Start
 
