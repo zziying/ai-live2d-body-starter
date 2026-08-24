@@ -84,6 +84,15 @@ const config = loadConfig()
 
 ipcMain.handle('get-config', () => config)
 
+// 合法值集合：内置表情 + config里自定义的表情名；动作=choreographer的6个预设
+const VALID_EMOTIONS = new Set([
+  'happy', 'love', 'shy', 'sad', 'angry', 'gloomy', 'neutral',
+  ...Object.keys(config.expressions || {}),
+])
+const VALID_ACTIONS = new Set(['nod', 'shake', 'surprise', 'thinking', 'shy', 'celebrate'])
+const emotionErr = (v: string) => `未知表情 "${v}" —— 可用: ${[...VALID_EMOTIONS].join('/')}`
+const actionErr = (v: string) => `未知动作 "${v}" —— 可用: ${[...VALID_ACTIONS].join('/')}`
+
 // ---------------------------------------------------------------------------
 // Inject：把桌宠事件（触摸等）送进ta的session。三种模式：
 //   tmux    —— ta跑在tmux里的CLI（Claude Code/codex等），文本注入输入框
@@ -199,8 +208,11 @@ const httpServer = createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/emotion') {
     readJsonBody(req, (data) => {
+      const emotion = data.emotion || 'neutral'
+      if (!VALID_EMOTIONS.has(emotion)) { bad(400, emotionErr(emotion)); return }
+      if (data.action && !VALID_ACTIONS.has(data.action)) { bad(400, actionErr(data.action)); return }
       latestEmotion = {
-        emotion: data.emotion || 'neutral',
+        emotion,
         message: data.message || '',
         timestamp: Date.now(),
       }
@@ -226,6 +238,7 @@ const httpServer = createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/speak') {
     readJsonBody(req, (data) => {
       if (!data.text) { bad(400, 'no text'); return }
+      if (data.emotion && !VALID_EMOTIONS.has(data.emotion)) { bad(400, emotionErr(data.emotion)); return }
       if (!config.tts.command || config.tts.command.length === 0) {
         bad(501, '未配置TTS —— 在pet.config.json的tts.command里配一条命令，见docs/config.md')
         return
@@ -294,6 +307,7 @@ const httpServer = createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/choreograph') {
     readJsonBody(req, (data) => {
+      if (data.action && !VALID_ACTIONS.has(data.action)) { bad(400, actionErr(data.action)); return }
       if (data.action) mainWindow?.webContents.send('action-trigger', { action: data.action })
       ok({ ok: true, action: data.action || '' })
     }, () => bad())
