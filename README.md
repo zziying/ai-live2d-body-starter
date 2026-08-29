@@ -74,15 +74,17 @@ pnpm dev
 - **HTTP**：开个终端试试
 
 ```bash
+# 所有请求都要带本地token（启动时自动生成在项目根目录，挡恶意网页的跨域POST）
+TOKEN=$(cat .pet-token)
 # 让ta开心
-curl -X POST http://127.0.0.1:3470/emotion -d '{"emotion":"happy","action":"celebrate"}'
+curl -X POST http://127.0.0.1:3470/emotion -H "X-Pet-Token: $TOKEN" -d '{"emotion":"happy","action":"celebrate"}'
 # 弹个聊天气泡（ta会低头瞟一眼，眯眼笑）
-curl -X POST http://127.0.0.1:3470/chat -d '{"sender":"user","text":"在吗"}'
+curl -X POST http://127.0.0.1:3470/chat -H "X-Pet-Token: $TOKEN" -d '{"sender":"user","text":"在吗"}'
 # 看看ta现在长什么样（返回PNG截图）
-curl http://127.0.0.1:3470/screenshot -o now.png
+curl http://127.0.0.1:3470/screenshot -H "X-Pet-Token: $TOKEN" -o now.png
 ```
 
-全部端点：`curl http://127.0.0.1:3470/` 或看 [docs/api.md](docs/api.md)。
+全部端点：`curl http://127.0.0.1:3470/ -H "X-Pet-Token: $TOKEN"` 或看 [docs/api.md](docs/api.md)（鉴权的为什么也在那里）。
 
 ## 表情适配你的模型
 
@@ -104,7 +106,7 @@ curl http://127.0.0.1:3470/screenshot -o now.png
 
 到这里桌宠还是"单机"的。两条线接起来才是完整的：
 
-**出方向（ta → 桌宠）**：告诉ta身体API的存在。把 [docs/api.md](docs/api.md) 给ta看，或者在ta的记忆/系统提示里加一句："你有一个Live2D身体，`curl 127.0.0.1:3470` 可以换表情、说话、做动作，`GET /screenshot` 能看到自己"。如果ta是Claude Code，用hooks让ta干活时自动带上思考脸——样例在 `hooks/`，接法见 [docs/api.md](docs/api.md)。
+**出方向（ta → 桌宠）**：告诉ta身体API的存在。把 [docs/api.md](docs/api.md) 给ta看，或者在ta的记忆/系统提示里加一句："你有一个Live2D身体，`curl 127.0.0.1:3470` 可以换表情、说话、做动作（带上项目根目录 `.pet-token` 的 `X-Pet-Token` 头），`GET /screenshot` 能看到自己"。如果ta是Claude Code，用hooks让ta干活时自动带上思考脸——样例在 `hooks/`，接法见 [docs/api.md](docs/api.md)。
 
 **入方向（触摸 → ta）**：改 `pet.config.json` 的 `inject.mode`：
 
@@ -130,7 +132,7 @@ curl http://127.0.0.1:3470/screenshot -o now.png
 然后：
 
 ```bash
-curl -X POST http://127.0.0.1:3470/speak -d '{"text":"你好呀，今天想我了吗","emotion":"happy"}'
+curl -X POST http://127.0.0.1:3470/speak -H "X-Pet-Token: $(cat .pet-token)" -d '{"text":"你好呀，今天想我了吗","emotion":"happy"}'
 ```
 
 ta会开口说话——有声音、有口型同步（音量驱动张嘴、频谱驱动嘴型）、底部弹出galgame风格的打字机字幕。想要更好的音色可以换ElevenLabs等任何TTS，写个小脚本落到同一个输出路径就行。
@@ -142,6 +144,7 @@ ta会开口说话——有声音、有口型同步（音量驱动张嘴、频谱
 - **热更新几轮后行为诡异**：HMR会残留运行时状态，怪现象先重启进程再排查
 - **端口被占**：上一个实例可能没退干净，`lsof -nP -iTCP:3470` 找到杀掉
 - **hooks里的curl一定要带 `--max-time 2`**：桌宠挂了但端口还在时，没有超时的curl会永远等下去，卡住ta的session
+- **调用一直401**：忘带 `X-Pet-Token` 头了（值在项目根目录 `.pet-token`）。这道鉴权挡的是浏览器网页对localhost的跨域POST，别图省事拆掉——尤其当你以后想给这个端口加新通道的时候
 - **说话吞字头**：音箱省电唤醒慢。代码里已有次声波keep-alive，还不行就在TTS输出前面垫0.5秒静音
 
 ## 这不是全部

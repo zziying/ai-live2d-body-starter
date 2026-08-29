@@ -2,12 +2,23 @@
 
 桌宠在 `http://127.0.0.1:3470` 开一个只监听本机的HTTP服务（端口可在config改）。这就是ta的"身体API"——ta自己调用它，就是ta在使用自己的身体。
 
+## 鉴权：X-Pet-Token（所有端点都要带）
+
+只监听本机 ≠ 只有自己人能调：浏览器里**任何网页**都能向 localhost 发跨域POST——simple request 不触发预检，请求照发，网页读不到响应但服务端已经执行了。所以桌宠启动时会在项目根目录生成 `.pet-token`（0600权限），所有请求必须带上：
+
+```bash
+TOKEN=$(cat .pet-token)   # 项目根目录下
+curl -X POST http://127.0.0.1:3470/emotion -H "X-Pet-Token: $TOKEN" -d '{"emotion":"happy"}'
+```
+
+服务端同时：不发任何CORS头（预检请求过不去）、校验Host头（挡DNS rebinding）。三道里token是唯一不依赖浏览器行为细节的，别拆掉它。换token=删 `.pet-token` 重启桌宠。样例hooks会自动读这个文件；下面的示例统一假设 `TOKEN` 已取好。
+
 ## HTTP端点
 
 ### POST /emotion — 换表情
 
 ```bash
-curl -X POST http://127.0.0.1:3470/emotion \
+curl -X POST http://127.0.0.1:3470/emotion -H "X-Pet-Token: $TOKEN" \
   -d '{"emotion":"happy","message":"备注文本可选","action":"celebrate"}'
 ```
 
@@ -21,7 +32,7 @@ curl -X POST http://127.0.0.1:3470/emotion \
 ### POST /choreograph — 播动作
 
 ```bash
-curl -X POST http://127.0.0.1:3470/choreograph -d '{"action":"nod"}'
+curl -X POST http://127.0.0.1:3470/choreograph -H "X-Pet-Token: $TOKEN" -d '{"action":"nod"}'
 ```
 
 动作：`nod`(点头) `shake`(摇头) `surprise`(惊讶) `thinking`(歪头思考) `shy`(害羞低头) `celebrate`(庆祝摇摆)。有冷却（全局10秒/同动作30秒），密集触发会被静默吞掉，正常。
@@ -29,7 +40,7 @@ curl -X POST http://127.0.0.1:3470/choreograph -d '{"action":"nod"}'
 ### POST /speak — 说话（需配置TTS）
 
 ```bash
-curl -X POST http://127.0.0.1:3470/speak -d '{"text":"今天也辛苦啦","emotion":"love"}'
+curl -X POST http://127.0.0.1:3470/speak -H "X-Pet-Token: $TOKEN" -d '{"text":"今天也辛苦啦","emotion":"love"}'
 ```
 
 TTS命令执行 → 音频播放+口型同步 → galgame字幕打字机。`emotion` 可选，说话同时换脸。文本里含关键词（"哇""不是""让我想想"…）会自动配动作。
@@ -37,7 +48,7 @@ TTS命令执行 → 音频播放+口型同步 → galgame字幕打字机。`emot
 ### POST /chat — 聊天气泡
 
 ```bash
-curl -X POST http://127.0.0.1:3470/chat -d '{"sender":"user","text":"消息内容"}'
+curl -X POST http://127.0.0.1:3470/chat -H "X-Pet-Token: $TOKEN" -d '{"sender":"user","text":"消息内容"}'
 ```
 
 左下角弹气泡（30秒淡出），ta会低头瞟一眼+眯眼笑。`sender` 是 `user` 或 `pet`（气泡颜色区分）。
@@ -45,7 +56,7 @@ curl -X POST http://127.0.0.1:3470/chat -d '{"sender":"user","text":"消息内�
 ### POST /working — 工作心跳
 
 ```bash
-curl -s -X POST http://127.0.0.1:3470/working --max-time 2 -d '{"tool":"Edit"}'
+curl -s -X POST http://127.0.0.1:3470/working --max-time 2 -H "X-Pet-Token: $TOKEN" -d '{"tool":"Edit"}'
 ```
 
 告诉桌宠"ta正在干活"：眼神微微上飘、轻皱眉、眯眼——思考脸。20秒没有新心跳自动恢复。主要给hooks用（见下）。

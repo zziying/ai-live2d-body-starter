@@ -14,6 +14,9 @@ src/renderer/public/model/*
 audio/*
 !audio/.gitkeep
 
+# 本地鉴权token（启动时自动生成，不要提交）
+.pet-token
+
 # misc
 .DS_Store
 *.log

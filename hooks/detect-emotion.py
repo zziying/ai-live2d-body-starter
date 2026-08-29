@@ -13,6 +13,17 @@ import sys
 import urllib.request
 
 PORT = os.environ.get("PET_PORT", "3470")
+# token由桌宠启动时生成在项目根目录，所有请求都要带（见 docs/api.md 鉴权一节）
+TOKEN_FILE = os.environ.get("PET_TOKEN_FILE") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", ".pet-token")
+
+
+def pet_token() -> str:
+    try:
+        with open(TOKEN_FILE, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
 
 EMOTION_KEYWORDS = [
     ("love",    ["爱你", "想你", "抱抱", "亲亲", "喜欢你"]),
@@ -76,7 +87,7 @@ def main() -> None:
     req = urllib.request.Request(
         f"http://127.0.0.1:{PORT}/emotion",
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "X-Pet-Token": pet_token()},
     )
     try:
         urllib.request.urlopen(req, timeout=2)

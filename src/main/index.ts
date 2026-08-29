@@ -2,6 +2,7 @@ import { app, BrowserWindow, screen, ipcMain } from 'electron'
 import { join, extname, normalize } from 'path'
 import { execFileSync, execFile } from 'child_process'
 import { createServer } from 'http'
+import { randomBytes } from 'crypto'
 import { statSync, createReadStream, readFileSync, writeFileSync } from 'fs'
 
 let mainWindow: BrowserWindow | null = null
@@ -58,6 +59,20 @@ const DEFAULT_CONFIG: PetConfig = {
 }
 
 const PROJECT_ROOT = app.getAppPath()
+
+// ---------------------------------------------------------------------------
+// 本地token鉴权（.pet-token，启动时自动生成）
+// 只绑127.0.0.1挡不住本机浏览器：任何网页都能向localhost发跨域POST——
+// simple request不触发预检，请求照发（网页读不到响应，但服务端已经执行了）。
+// 所以：不发CORS头 + 所有请求验 X-Pet-Token。调用方读这个文件带上头即可。
+// ---------------------------------------------------------------------------
+const TOKEN_FILE = join(PROJECT_ROOT, '.pet-token')
+let petToken = ''
+try { petToken = readFileSync(TOKEN_FILE, 'utf8').trim() } catch { /* 首次运行 */ }
+if (!petToken) {
+  petToken = randomBytes(24).toString('hex')
+  writeFileSync(TOKEN_FILE, petToken + '\n', { mode: 0o600 })
+}
 
 function loadConfig(): PetConfig {
   try {
@@ -189,10 +204,6 @@ const API_HELP = {
 }
 
 const httpServer = createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
   const ok = (payload: object = { ok: true }) => {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(payload))
@@ -202,7 +213,16 @@ const httpServer = createServer((req, res) => {
     res.end(JSON.stringify({ ok: false, error }))
   }
 
-  if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return }
+  // 故意不发CORS头：预检请求死在OPTIONS，网页永远读不到任何响应
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
+
+  // Host校验挡DNS rebinding；token是唯一不依赖浏览器行为细节的那道防线
+  const host = String(req.headers.host || '')
+  const hostOk = host.startsWith('127.0.0.1') || host.startsWith('localhost')
+  if (!hostOk || req.headers['x-pet-token'] !== petToken) {
+    bad(401, 'unauthorized：请带 X-Pet-Token 头，值在项目根目录 .pet-token 文件里')
+    return
+  }
 
   if (req.method === 'GET' && req.url === '/') { ok(API_HELP); return }
 
