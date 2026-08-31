@@ -18,8 +18,12 @@ export interface PetConfig {
     messages: Record<string, string>
   }
   tts: { command: string[] | null; output: string }
+  panels: { enabled: boolean; weatherUrl: string }
+  backgrounds: { enabled: boolean }
+  tuning: { lipSyncGain: number; lipSyncGate: number }
   defaultFace: Record<string, number>
   expressions: Record<string, Record<string, number>>
+  expressionFiles: Record<string, string>
   dizzyExtras: Record<string, number>
 }
 
@@ -29,6 +33,9 @@ declare global {
       platform: string
       getConfig: () => Promise<PetConfig>
       petTouch: (action: string) => Promise<{ ok: boolean }>
+      listBackgrounds: () => Promise<string[]>
+      listExp3: () => Promise<string[]>
+      fetchWeather: () => Promise<string | null>
       onEmotionUpdate: (cb: (data: { emotion: string; message: string }) => void) => void
       onChatMessage: (cb: (data: { sender: string; text: string; ts: number }) => void) => void
       onSpeak: (cb: (data: { url: string; text?: string }) => void) => void

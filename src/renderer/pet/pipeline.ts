@@ -53,10 +53,19 @@ export function createPipeline() {
   return { register, run }
 }
 
+// 角度类参数的写入缩放（模型profile探测后注册，见 profile.ts）。
+// 管线幅度按标准范围打，非标范围的模型靠这层换算，插件代码不用感知。
+let angleScale: Record<string, number> = {}
+
+export function setPipelineAngleScale(scale: Record<string, number>) {
+  angleScale = scale
+}
+
 /** 容错写参数：模型没有这个参数时静默跳过（不同模型参数表差异很大） */
 export function setParam(cm: any, id: string, value: number) {
   try {
-    cm.setParameterValueById(id, value)
+    const s = angleScale[id]
+    cm.setParameterValueById(id, s ? value * s : value)
   } catch {}
 }
 

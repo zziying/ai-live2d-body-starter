@@ -10,6 +10,10 @@ src/renderer/public/live2dcubismcore.min.js
 src/renderer/public/model/*
 !src/renderer/public/model/.gitkeep
 
+# 你的背景图不要提交
+src/renderer/public/backgrounds/*
+!src/renderer/public/backgrounds/.gitkeep
+
 # 运行时产物
 audio/*
 !audio/.gitkeep

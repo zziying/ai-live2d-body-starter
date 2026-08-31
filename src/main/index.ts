@@ -3,7 +3,7 @@ import { join, extname, normalize } from 'path'
 import { execFileSync, execFile } from 'child_process'
 import { createServer } from 'http'
 import { randomBytes } from 'crypto'
-import { statSync, createReadStream, readFileSync, writeFileSync } from 'fs'
+import { statSync, createReadStream, readFileSync, writeFileSync, readdirSync } from 'fs'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -29,8 +29,12 @@ interface PetConfig {
     messages: Record<string, string>
   }
   tts: { command: string[] | null; output: string }
+  panels: { enabled: boolean; weatherUrl: string }
+  backgrounds: { enabled: boolean }
+  tuning: { lipSyncGain: number; lipSyncGate: number }
   defaultFace: Record<string, number>
   expressions: Record<string, Record<string, number>>
+  expressionFiles: Record<string, string>
   dizzyExtras: Record<string, number>
 }
 
@@ -53,8 +57,12 @@ const DEFAULT_CONFIG: PetConfig = {
     },
   },
   tts: { command: null, output: 'audio/speak.mp3' },
+  panels: { enabled: false, weatherUrl: '' },
+  backgrounds: { enabled: false },
+  tuning: { lipSyncGain: 30, lipSyncGate: 0.008 },
   defaultFace: {},
   expressions: {},
+  expressionFiles: {},
   dizzyExtras: {},
 }
 
@@ -88,6 +96,9 @@ function loadConfig(): PetConfig {
         messages: { ...DEFAULT_CONFIG.inject.messages, ...raw.inject?.messages },
       },
       tts: { ...DEFAULT_CONFIG.tts, ...raw.tts },
+      panels: { ...DEFAULT_CONFIG.panels, ...raw.panels },
+      backgrounds: { ...DEFAULT_CONFIG.backgrounds, ...raw.backgrounds },
+      tuning: { ...DEFAULT_CONFIG.tuning, ...raw.tuning },
     }
   } catch (e) {
     console.warn('[config] pet.config.json 读取失败，使用默认配置:', (e as Error).message)
@@ -103,6 +114,7 @@ ipcMain.handle('get-config', () => config)
 const VALID_EMOTIONS = new Set([
   'happy', 'love', 'shy', 'sad', 'angry', 'gloomy', 'neutral',
   ...Object.keys(config.expressions || {}),
+  ...Object.keys(config.expressionFiles || {}),
 ])
 const VALID_ACTIONS = new Set(['nod', 'shake', 'surprise', 'thinking', 'shy', 'celebrate'])
 const emotionErr = (v: string) => `未知表情 "${v}" —— 可用: ${[...VALID_EMOTIONS].join('/')}`
@@ -154,6 +166,59 @@ ipcMain.handle('pet-touch', (_event, action: string) => {
   const msg = config.inject.messages[action]
   if (msg) inject(msg)
   return { ok: true }
+})
+
+// ---------------------------------------------------------------------------
+// 背景图池：图直接丢进 src/renderer/public/backgrounds/ 就能用（不用重启）。
+// day_* / night_* 前缀分白天/晚上池，无前缀两池通用 —— 分池逻辑在renderer。
+// ---------------------------------------------------------------------------
+const BACKGROUNDS_DIR = join(PROJECT_ROOT, 'src', 'renderer', 'public', 'backgrounds')
+
+ipcMain.handle('list-backgrounds', () => {
+  try {
+    return readdirSync(BACKGROUNDS_DIR).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f))
+  } catch {
+    return []
+  }
+})
+
+// 模型自带表情兜底扫描：不少模型的exp3文件躺在目录里但没登记进model3.json的
+// Expressions清单（我们的第一个模型就是）。renderer拿不到目录列表，main来扫：
+// 模型所在目录及其一级子目录里的 *.exp3.json，返回相对模型目录的路径。
+ipcMain.handle('list-exp3', () => {
+  try {
+    const modelDir = join(PROJECT_ROOT, 'src', 'renderer', 'public',
+      config.model.path.replace(/^\//, '').replace(/[^/]*$/, ''))
+    const found: string[] = []
+    for (const entry of readdirSync(modelDir, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.endsWith('.exp3.json')) {
+        found.push(entry.name)
+      } else if (entry.isDirectory()) {
+        try {
+          for (const sub of readdirSync(join(modelDir, entry.name))) {
+            if (sub.endsWith('.exp3.json')) found.push(`${entry.name}/${sub}`)
+          }
+        } catch {}
+      }
+    }
+    return found
+  } catch {
+    return []
+  }
+})
+
+// 天气走main代理（renderer受CSP限制），接口用户自己填：panels.weatherUrl，
+// 返回一行文本即可（wttr.in的format模式开箱能用，见docs/config.md）
+ipcMain.handle('fetch-weather', async () => {
+  const url = config.panels.weatherUrl
+  if (!url) return null
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+    if (!res.ok) return null
+    return (await res.text()).trim().slice(0, 60)
+  } catch {
+    return null
+  }
 })
 
 // ---------------------------------------------------------------------------

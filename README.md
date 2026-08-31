@@ -88,7 +88,11 @@ curl http://127.0.0.1:3470/screenshot -H "X-Pet-Token: $TOKEN" -o now.png
 
 ## 表情适配你的模型
 
-默认表情只用Live2D标准参数，任何按规范建的模型开箱就有基本喜怒哀乐。但你的模型大概率有自己的特效参数（脸红贴图、流泪、生气符号……），把它们配进 `pet.config.json` 表情才会真正生动：
+默认表情只用Live2D标准参数，任何按规范建的模型开箱就有基本喜怒哀乐。启动时终端会打一张 `[model-profile]` **体检报告**：标准参数齐不齐、缺了哪个会失去什么功能（缺的不是bug，是模型用了自定义参数名，配一下就有）；头部角度范围非标准的模型还会自动按比例换算，动作手感不用调。
+
+**模型自带表情优先**：模型带 `.exp3.json` 表情文件的话（体检报告会列出清单），建模师调好的直接用——跟内置表情同名的自动采用，名字对不上的在 `expressionFiles` 里映射一下（`{"sad": "A01.流泪"}`）。内置的标准参数组合只是兜底。
+
+模型没带表情文件？它大概率也有自己的特效参数（脸红贴图、流泪、生气符号……），把它们配进 `pet.config.json` 表情就生动了：
 
 ```json
 "expressions": {
@@ -137,6 +141,20 @@ curl -X POST http://127.0.0.1:3470/speak -H "X-Pet-Token: $(cat .pet-token)" -d 
 
 ta会开口说话——有声音、有口型同步（音量驱动张嘴、频谱驱动嘴型）、底部弹出galgame风格的打字机字幕。想要更好的音色可以换ElevenLabs等任何TTS，写个小脚本落到同一个输出路径就行。
 
+## 场景模式：背景和信息面板（可选）
+
+默认是透明小窗桌宠。想把ta放进一个"房间"（比如挂在副屏上当画）→ `pet.config.json` 开这两个独立开关：
+
+```json
+"backgrounds": { "enabled": true },
+"panels": { "enabled": true, "weatherUrl": "https://wttr.in/Tokyo?format=%C+%t" }
+```
+
+- **backgrounds**：背景图丢进 `src/renderer/public/backgrounds/` 就能用（不用重启）。文件名 `day_*` / `night_*` 分白天(7:00-19:00)/夜里两个池，无前缀的两池通用；时段切换时随机换一张，2.5秒交叉淡入。建议配 `"fullscreen": true` 用——透明小窗开背景会变成一张矩形卡片
+- **panels**：左上角毛玻璃卡，时钟+天气。时钟纯本地零依赖；天气接口自己填一个返回一行文本的URL（例子里的 [wttr.in](https://wttr.in) 免费无key，city换成你的），留空就只显示时钟
+
+不管开关如何，UI自带日夜主题：19:00-7:00对话框/气泡/面板自动换暗玻璃+浅字，白天换回亮玻璃。细节见 [docs/config.md](docs/config.md)。
+
 ## 常见坑（都踩过了）
 
 - **模型加载失败**：路径没写对（相对 `src/renderer/public/`）；或模型是加密的（moc3打不开就是）；或 `live2dcubismcore.min.js` 没下载成功（重跑 `node scripts/fetch-cubism-core.mjs`）
@@ -147,9 +165,15 @@ ta会开口说话——有声音、有口型同步（音量驱动张嘴、频谱
 - **调用一直401**：忘带 `X-Pet-Token` 头了（值在项目根目录 `.pet-token`）。这道鉴权挡的是浏览器网页对localhost的跨域POST，别图省事拆掉——尤其当你以后想给这个端口加新通道的时候
 - **说话吞字头**：音箱省电唤醒慢。代码里已有次声波keep-alive，还不行就在TTS输出前面垫0.5秒静音
 
+## 为什么不播模型自带的动作（motion3.json）？
+
+很多模型带预设动作文件，starter**故意不接**。SDK的motion manager在模型update内部每帧写参数，我们的参数管线在ticker里也每帧写同一批参数——两套系统抢，谁后跑谁赢，表现不是报错而是表情被吞、动作抽搐（SDK自动眨眼就因为这个被彻底禁用了，见 `useBlink.ts` 头注）。所以动作走的是自研choreographer（关键帧+缓动，跟管线用choreoActive协商参数占用）。
+
+真想接模型预设动作的话，两条路：把motion3.json的关键帧转成choreographer预设（推荐，AI擅长干这个）；或者播放期间让管线对motion占用的参数让位（照着choreoActive机制抄）。别直接 `model.motion()` 了事——一定打架。
+
 ## 这不是全部
 
-这个starter是骨架：渲染、管线、表情、触摸、说话。我们家的完整版还有：跟着音乐点头（本地算BPM）、干活时手上换道具、日夜背景轮换、副屏面板（时钟/天气/心情/签名）、比大小牌桌、摄像头猜拳……这些太个人化了没放进来，但架构留好了位置——每个功能都是管线上的一个插件、main里的一个端点。思路篇 [ai-live2d-body](https://github.com/zziying/ai-live2d-body) 里都有讲，照着让你的AI一个个长出来，那才是好玩的部分。
+这个starter是骨架：渲染、管线、表情、触摸、说话。我们家的完整版还有：跟着音乐点头（本地算BPM）、干活时手上换道具、副屏面板的心情/签名/在听行、比大小牌桌、摄像头猜拳……这些太个人化了没放进来，但架构留好了位置——每个功能都是管线上的一个插件、main里的一个端点。思路篇 [ai-live2d-body](https://github.com/zziying/ai-live2d-body) 里都有讲，照着让你的AI一个个长出来，那才是好玩的部分。
 
 ## License
 

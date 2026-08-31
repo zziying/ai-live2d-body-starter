@@ -200,7 +200,10 @@ export function triggerAttention(state: PetState) {
 
 // --- lip sync: 说话时RMS驱动嘴，结束后smoothstep交还给表情系统 ---------------
 
-export function lipSyncPlugin(state: PetState): PetPlugin {
+export function lipSyncPlugin(
+  state: PetState,
+  tuning: { lipSyncGain: number; lipSyncGate: number },
+): PetPlugin {
   const RELEASE_MS = 200
   const smoothstep = (t: number) => t * t * (3 - 2 * t)
 
@@ -229,8 +232,10 @@ export function lipSyncPlugin(state: PetState): PetPlugin {
         let sum = 0
         for (const a of pcm) sum += a * a
         const rms = Math.sqrt(sum / pcm.length)
-        const gate = 0.008
-        const gain = 30
+        // 增益/门限是手感旋钮（pet.config.json tuning段）：不同TTS音量差很大，
+        // 嘴几乎不动→调大gain；闭嘴时嘴皮乱颤→调大gate
+        const gate = tuning.lipSyncGate
+        const gain = tuning.lipSyncGain
         let target = rms > gate ? Math.min(1, (rms - gate) * gain) : 0
         // sqrt曲线：中等音量也能明显张嘴，音节看得清
         target = Math.sqrt(target)

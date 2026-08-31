@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   getConfig: () => ipcRenderer.invoke('get-config'),
   petTouch: (action: string) => ipcRenderer.invoke('pet-touch', action),
+  listBackgrounds: () => ipcRenderer.invoke('list-backgrounds'),
+  listExp3: () => ipcRenderer.invoke('list-exp3'),
+  fetchWeather: () => ipcRenderer.invoke('fetch-weather'),
   onEmotionUpdate: (callback: (data: any) => void) => {
     ipcRenderer.removeAllListeners('emotion-update')
     ipcRenderer.on('emotion-update', (_event, data) => callback(data))

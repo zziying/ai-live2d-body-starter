@@ -5,8 +5,10 @@ import { Live2DModel } from 'pixi-live2d-display-lipsyncpatch/cubism4'
 import { useChoreographer } from '../composables/useChoreographer'
 import { useBlink } from '../composables/useBlink'
 import { createPetState } from '../pet/state'
-import { createPipeline, type FrameCtx } from '../pet/pipeline'
-import { buildExpressionTables } from '../pet/expressions'
+import { createPipeline, setPipelineAngleScale, type FrameCtx } from '../pet/pipeline'
+import { buildExpressionTables, BUILTIN_EMOTIONS } from '../pet/expressions'
+import { buildModelProfile } from '../pet/profile'
+import { loadExp3Expressions, mapExp3ToEmotions } from '../pet/exp3'
 import {
   setupPlugin, gazePlugin, headSpringPlugin, eyeOpennessPlugin,
   expressionPlugin, attentionSmilePlugin, lipSyncPlugin,
@@ -102,7 +104,17 @@ onMounted(async () => {
 
   app.stage.addChild(model)
 
-  const tables = buildExpressionTables(cfg.expressions, cfg.defaultFace)
+  // 模型体检+角度缩放（跨模型兼容的关键一步，报告打在 pnpm dev 终端里）
+  const profile = buildModelProfile(model.internalModel.coreModel)
+  setPipelineAngleScale(profile.angleScale)
+
+  // 表情三层优先级：config手写 > 模型自带exp3 > 内置标准参数组合
+  const paramDefaults = Object.fromEntries(
+    Object.entries(profile.ranges).map(([id, r]) => [id, r.def])
+  )
+  const exp3All = await loadExp3Expressions(cfg.model.path, model.internalModel.settings, paramDefaults)
+  const exp3Overrides = mapExp3ToEmotions(exp3All, BUILTIN_EMOTIONS, cfg.expressionFiles)
+  const tables = buildExpressionTables({ ...exp3Overrides, ...cfg.expressions }, cfg.defaultFace)
 
   // --- 管线：注册顺序即层叠顺序，dizzy最后（压倒一切） ---------------------
   const pipeline = createPipeline()
@@ -112,7 +124,7 @@ onMounted(async () => {
   pipeline.register(eyeOpennessPlugin(state, blink, tables))
   pipeline.register(expressionPlugin(state, tables))
   pipeline.register(attentionSmilePlugin(state))
-  pipeline.register(lipSyncPlugin(state))
+  pipeline.register(lipSyncPlugin(state, cfg.tuning))
   pipeline.register(thinkingFacePlugin(state))
   pipeline.register(choreoApplyPlugin(state))
   pipeline.register(dizzyPlugin(state, cfg.dizzyExtras))

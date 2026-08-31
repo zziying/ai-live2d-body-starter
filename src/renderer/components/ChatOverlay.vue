@@ -71,6 +71,7 @@ onMounted(() => {
 .chat-overlay.lifted {
   opacity: 0;
 }
+/* 气泡色走App.vue的日夜主题变量，夜里自动换暗色 */
 .bubble {
   padding: 7px 12px;
   border-radius: 12px;
@@ -78,20 +79,20 @@ onMounted(() => {
   line-height: 1.5;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  transition: opacity 0.6s ease;
+  transition: opacity 0.6s ease, background 1s ease, color 1s ease;
   width: fit-content;
 }
 .bubble.fading {
   opacity: 0;
 }
 .from-user {
-  background: rgba(255, 255, 255, 0.72);
-  color: #333;
+  background: var(--bubble-user-bg, rgba(255, 255, 255, 0.72));
+  color: var(--bubble-user-ink, #333);
   align-self: flex-start;
 }
 .from-pet {
-  background: rgba(120, 150, 220, 0.7);
-  color: #fff;
+  background: var(--bubble-pet-bg, rgba(120, 150, 220, 0.7));
+  color: var(--bubble-pet-ink, #fff);
   align-self: flex-end;
 }
 .bubble-enter-active {

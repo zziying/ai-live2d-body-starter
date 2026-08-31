@@ -49,6 +49,9 @@ const BUILTIN_MAP: Record<string, Record<string, number>> = {
   neutral: {},
 }
 
+/** 内置表情名（exp3同名自动匹配用） */
+export const BUILTIN_EMOTIONS = Object.keys(BUILTIN_MAP)
+
 // 眼开度（ParamEyeLOpen/ParamEyeROpen）不进重置循环 —— 它有独立通道：
 // 表情基值 × 眨眼因子。当年把它放进循环里用0做默认值，gloomy的半闭眼
 // 就这么被静默压掉了好几周。
