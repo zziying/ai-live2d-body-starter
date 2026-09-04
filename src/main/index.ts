@@ -1,9 +1,9 @@
 import { app, BrowserWindow, screen, ipcMain } from 'electron'
-import { join, extname, normalize } from 'path'
+import { join } from 'path'
 import { execFileSync, execFile } from 'child_process'
 import { createServer } from 'http'
 import { randomBytes } from 'crypto'
-import { statSync, createReadStream, readFileSync, writeFileSync, readdirSync } from 'fs'
+import { readFileSync, writeFileSync, readdirSync } from 'fs'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -210,6 +210,15 @@ function listExp3Files(): string[] {
 
 ipcMain.handle('list-exp3', () => listExp3Files())
 
+// TTS产出的音频文件：renderer拿Buffer自己做Blob URL播放（HTTP端口有token+无CORS，<audio>标签走不通）
+ipcMain.handle('read-speak-audio', () => {
+  try {
+    return readFileSync(join(PROJECT_ROOT, config.tts.output))
+  } catch {
+    return null
+  }
+})
+
 // 模型自带表情名清单（/expression 直通开关校验用）：model3.json的Expressions
 // 清单优先，空则目录扫描——与renderer的加载规则一致
 function listExp3Names(): string[] {
@@ -351,7 +360,8 @@ const httpServer = createServer((req, res) => {
       const args = cmd.slice(1).map(a => a.replaceAll('{text}', String(data.text)))
       execFile(cmd[0], args, { timeout: 90_000, cwd: PROJECT_ROOT }, (err, _stdout, stderr) => {
         if (err) { bad(500, `TTS命令失败: ${stderr || err.message}`); return }
-        const audioUrl = `http://127.0.0.1:${config.port}/audio/${config.tts.output.split('/').pop()}?t=${Date.now()}`
+        // 音频不走HTTP：<audio>标签带不了token头，跨域也没CORS头可用（那是故意的）。
+        // renderer通过IPC读文件做Blob URL播放，见 read-speak-audio
         // emotion可以搭车 —— 一边说一边换脸
         if (data.emotion) {
           latestEmotion = { emotion: data.emotion, message: data.text || '', timestamp: Date.now() }
@@ -359,29 +369,10 @@ const httpServer = createServer((req, res) => {
         }
         const speakAction = detectAction(data.text)
         if (speakAction) mainWindow?.webContents.send('action-trigger', { action: speakAction })
-        mainWindow?.webContents.send('speak', { url: audioUrl, text: data.text })
+        mainWindow?.webContents.send('speak', { file: config.tts.output, text: data.text })
         ok()
       })
     }, () => bad())
-    return
-  }
-
-  if (req.method === 'GET' && req.url?.startsWith('/audio/')) {
-    const fileName = req.url.split('/audio/')[1]?.split('?')[0] || ''
-    // 只允许audio目录里的裸文件名，防路径穿越
-    if (!fileName || fileName.includes('/') || fileName.includes('..') || normalize(fileName) !== fileName) {
-      bad(400, 'bad filename')
-      return
-    }
-    const filePath = join(PROJECT_ROOT, 'audio', fileName)
-    try {
-      const stat = statSync(filePath)
-      const mime = extname(fileName) === '.wav' ? 'audio/wav' : 'audio/mpeg'
-      res.writeHead(200, { 'Content-Type': mime, 'Content-Length': stat.size })
-      createReadStream(filePath).pipe(res)
-    } catch {
-      bad(404, 'not found')
-    }
     return
   }
 

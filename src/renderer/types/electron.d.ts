@@ -35,10 +35,11 @@ declare global {
       petTouch: (action: string) => Promise<{ ok: boolean }>
       listBackgrounds: () => Promise<string[]>
       listExp3: () => Promise<string[]>
+      readSpeakAudio: () => Promise<Uint8Array | null>
       fetchWeather: () => Promise<string | null>
       onEmotionUpdate: (cb: (data: { emotion: string; message: string }) => void) => void
       onChatMessage: (cb: (data: { sender: string; text: string; ts: number }) => void) => void
-      onSpeak: (cb: (data: { url: string; text?: string }) => void) => void
+      onSpeak: (cb: (data: { file: string; text?: string }) => void) => void
       onAction: (cb: (data: { action: string }) => void) => void
       onAttention: (cb: (data: { target: string }) => void) => void
       onWorkingPing: (cb: (tool: string) => void) => void

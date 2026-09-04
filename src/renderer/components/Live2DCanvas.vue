@@ -322,12 +322,16 @@ onMounted(async () => {
   }
 
   // 语音播放：analyser接进lip-sync插件
-  window.electronAPI?.onSpeak?.((data: any) => {
-    if (!model || !data?.url) return
+  window.electronAPI?.onSpeak?.(async (data: any) => {
+    if (!model || !data?.file) return
     if (currentAudio) { currentAudio.pause(); currentAudio = null }
 
-    const audio = new Audio(data.url)
-    audio.crossOrigin = 'anonymous'
+    // 音频经IPC拿Buffer → Blob URL：同源，analyser能读样本，也不用给HTTP端口开CORS
+    const bytes = await window.electronAPI.readSpeakAudio?.()
+    if (!bytes) { console.warn('[speak] 读不到音频文件', data.file); emit('speech-end'); return }
+    const mime = /\.wav$/i.test(data.file) ? 'audio/wav' : 'audio/mpeg'
+    const blobUrl = URL.createObjectURL(new Blob([bytes as BlobPart], { type: mime }))
+    const audio = new Audio(blobUrl)
     currentAudio = audio
 
     if (!audioContext) audioContext = new AudioContext()
@@ -341,7 +345,11 @@ onMounted(async () => {
 
     state.isSpeaking = true
     if (data.text) emit('speech', data.text)
-    const end = () => { state.isSpeaking = false; state.analyser = null; currentAudio = null; emit('speech-end') }
+    const end = () => {
+      state.isSpeaking = false; state.analyser = null; currentAudio = null
+      URL.revokeObjectURL(blobUrl)
+      emit('speech-end')
+    }
     audio.onended = end
     audio.onerror = end
     audio.play().catch(() => { state.isSpeaking = false; emit('speech-end') })
