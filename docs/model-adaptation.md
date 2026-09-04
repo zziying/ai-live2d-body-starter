@@ -62,7 +62,7 @@ your-model/
 
 另外两个"看起来没表情"的常见错觉（都在官方Hiyori上实测踩过）：
 
-- **厚刘海挡眉毛**：sad/angry/gloomy的主力是眉毛参数，刘海厚的模型里它们再怎么动你也看不见——给这几个表情往眼开度（半闭眼）和嘴型上加码才出效果
+- **厚刘海挡眉毛**：sad/angry/gloomy的主力是眉毛参数，刘海厚的模型里它们再怎么动你也看不见——给这几个表情往眼开度（半闭眼）和嘴型上加码才出效果。模型自带的"生气"表情也逃不掉：建模师的화남（生气）exp3只动眉毛和嘴，配上厚刘海+没有BrowAngle参数，在第二个实测模型上几乎看不出来——在 `expressions` 里给angry加 `ParamEyeLOpen/ROpen: 0.6` 眯眼才够味
 - **表情被动作盖住**：鼠标摸/戳触发的动作（choreographer）优先级高于表情，你一边动鼠标一边按1-7会觉得"没反应"——手离开鼠标两秒再试
 - 还有：负面表情的生动程度很依赖模型的特效贴图（生气符号/眼泪/阴影）。免费示例模型基本没有这些，商用模型大多有——配进 `expressions` 差距立现
 
@@ -80,7 +80,32 @@ cm._model?.parameters?.ids ?? cm._parameterIds
 cm.setParameterValueById('ParamCheek', 1)
 ```
 
-**方法三**：模型附带的 `.exp3.json` 表情文件（如果有）里就是现成的参数组合，打开抄参数名和值即可。
+**方法三**：模型附带的 `.exp3.json` 表情文件（如果有）里就是现成的参数组合。不用自己打开：体检报告会逐个列出，长这样——
+
+```
+[model-profile] 模型自带表情 9 个（表情名 → 动了哪些参数；括号里是建模师给参数起的名字）：
+  게임패드 → Param120(게임기)+1
+  눈물 → Param122(눈물)+1  Param(sad)+1  ParamMouthForm(입 변형)-0.89
+  하트눈 → Param124(하트눈)+1
+  화남 → ParamBrowLY(왼쪽 눈썹 위아래로)-1  ParamBrowRY(...)-1  ParamMouthForm(입 변형)-1
+  ...
+  未映射（可直通开关）：게임패드、머리안경、반짝눈、얼굴안경
+```
+
+**把这段整个发给你的AI**，ta看得懂韩文日文，也看得出"游戏机"不是情绪。ta会把像情绪的填进 `expressionFiles`（`{"sad":"눈물","love":"하트눈","shy":"홍조","angry":"화남","gloomy":"음침"}`），其余留给 `POST /expression` 按原名开关（道具/穿戴/特效，见 docs/api.md）。映射上的exp3参数**叠在**内置表情上：하트눈只有一个爱心眼参数，叠上去就是"内置笑脸+爱心眼"，而不是"模型默认脸+爱心眼"。
+
+参数显示名不一定是中文或英文——上面这个模型的cdi3全是韩文、参数ID全是 `Param118` 这种编号。这正是为什么要让AI来读：人对着171个编号翻字典是折磨，ta几秒钟的事。
+
+**表情文件名是乱码？**（`¥´π∞.exp3.json` 这种）韩国/日本模型的zip在macOS上解压，CP949/Shift-JIS文件名会被按Mac Roman解码成乱码，文件本身是好的。真名通常能在同目录的 `xxx.vtube.json`（VTube Studio配置）的 `Hotkeys[].File` 里对上；还原一行python：
+
+```python
+import os, glob
+for f in glob.glob('*.exp3.json'):
+    try: os.rename(f, f.encode('mac_roman').decode('cp949'))   # 日文模型换 'shift_jis'
+    except Exception as e: print('跳过', f, e)
+```
+
+乱码名不还原也能跑（体检报告照样列出、也能映射），只是给AI看的时候少了"这个叫眼泪"这层信息。
 
 ### 写进config
 

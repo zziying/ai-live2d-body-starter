@@ -185,10 +185,11 @@ ipcMain.handle('list-backgrounds', () => {
 // 模型自带表情兜底扫描：不少模型的exp3文件躺在目录里但没登记进model3.json的
 // Expressions清单（我们的第一个模型就是）。renderer拿不到目录列表，main来扫：
 // 模型所在目录及其一级子目录里的 *.exp3.json，返回相对模型目录的路径。
-ipcMain.handle('list-exp3', () => {
+const PUBLIC_DIR = join(PROJECT_ROOT, 'src', 'renderer', 'public')
+
+function listExp3Files(): string[] {
   try {
-    const modelDir = join(PROJECT_ROOT, 'src', 'renderer', 'public',
-      config.model.path.replace(/^\//, '').replace(/[^/]*$/, ''))
+    const modelDir = join(PUBLIC_DIR, config.model.path.replace(/^\//, '').replace(/[^/]*$/, ''))
     const found: string[] = []
     for (const entry of readdirSync(modelDir, { withFileTypes: true })) {
       if (entry.isFile() && entry.name.endsWith('.exp3.json')) {
@@ -205,7 +206,22 @@ ipcMain.handle('list-exp3', () => {
   } catch {
     return []
   }
-})
+}
+
+ipcMain.handle('list-exp3', () => listExp3Files())
+
+// 模型自带表情名清单（/expression 直通开关校验用）：model3.json的Expressions
+// 清单优先，空则目录扫描——与renderer的加载规则一致
+function listExp3Names(): string[] {
+  try {
+    const model3 = JSON.parse(readFileSync(join(PUBLIC_DIR, config.model.path.replace(/^\//, '')), 'utf8'))
+    const defs = model3?.FileReferences?.Expressions
+    if (Array.isArray(defs) && defs.length) return defs.map((d: any) => String(d.Name))
+  } catch {}
+  return listExp3Files().map(f => f.replace(/^.*\//, '').replace(/\.exp3\.json$/, ''))
+}
+const EXP3_NAMES = listExp3Names()
+const activeExpressions = new Set<string>()
 
 // 天气走main代理（renderer受CSP限制），接口用户自己填：panels.weatherUrl，
 // 返回一行文本即可（wttr.in的format模式开箱能用，见docs/config.md）
@@ -263,6 +279,8 @@ const API_HELP = {
     'POST /speak': '{"text":"...","emotion":"..."} TTS说话+口型（需配置tts.command）',
     'POST /chat': '{"sender":"pet"|"user","text":"..."} 聊天气泡',
     'POST /choreograph': '{"action":"nod|shake|surprise|thinking|shy|celebrate"} 播动作',
+    'POST /expression': '{"name":"模型自带表情名","on":true|false} 直通开关（省略on=切换；{"clear":true}全关）。道具/穿戴/特效这类不是情绪的表情走这里，可叠加不衰减',
+    'GET  /expression': '读直通开关状态 + 模型自带表情清单',
     'POST /working': '{"tool":"Edit"} 工作心跳（思考脸），hooks用',
     'GET  /screenshot': '当前画面PNG —— ta可以亲眼看到自己',
   },
@@ -395,6 +413,33 @@ const httpServer = createServer((req, res) => {
       if (data.action && !VALID_ACTIONS.has(data.action)) { bad(400, actionErr(data.action)); return }
       if (data.action) mainWindow?.webContents.send('action-trigger', { action: data.action })
       ok({ ok: true, action: data.action || '' })
+    }, () => bad())
+    return
+  }
+
+  if (req.method === 'GET' && req.url === '/expression') {
+    ok({ active: [...activeExpressions], available: EXP3_NAMES })
+    return
+  }
+
+  // 模型自带表情直通开关：状态在main（GET能读、省略on能切换），renderer只落参数
+  if (req.method === 'POST' && req.url === '/expression') {
+    readJsonBody(req, (data) => {
+      if (data.clear) {
+        activeExpressions.clear()
+        mainWindow?.webContents.send('expression-toggle', { clear: true })
+        ok({ ok: true, active: [] })
+        return
+      }
+      const name = String(data.name || '')
+      if (!EXP3_NAMES.includes(name)) {
+        bad(400, `未知表情 "${name}" —— 模型自带: ${EXP3_NAMES.join('/') || '（无，模型没有exp3文件）'}`)
+        return
+      }
+      const on = typeof data.on === 'boolean' ? data.on : !activeExpressions.has(name)
+      if (on) activeExpressions.add(name); else activeExpressions.delete(name)
+      mainWindow?.webContents.send('expression-toggle', { name, on })
+      ok({ ok: true, name, on, active: [...activeExpressions] })
     }, () => bad())
     return
   }

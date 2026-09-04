@@ -42,6 +42,7 @@ declare global {
       onAction: (cb: (data: { action: string }) => void) => void
       onAttention: (cb: (data: { target: string }) => void) => void
       onWorkingPing: (cb: (tool: string) => void) => void
+      onExpressionToggle: (cb: (data: { name: string; on: boolean; clear?: boolean }) => void) => void
     }
   }
 }

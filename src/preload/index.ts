@@ -29,6 +29,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('attention')
     ipcRenderer.on('attention', (_event, data) => callback(data))
   },
+  onExpressionToggle: (callback: (data: any) => void) => {
+    ipcRenderer.removeAllListeners('expression-toggle')
+    ipcRenderer.on('expression-toggle', (_event, data) => callback(data))
+  },
   onWorkingPing: (callback: (tool: string) => void) => {
     ipcRenderer.removeAllListeners('working-ping')
     ipcRenderer.on('working-ping', (_event, tool) => callback(tool || ''))

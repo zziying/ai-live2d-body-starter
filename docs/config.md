@@ -60,7 +60,7 @@
 
   "defaultFace": {},      // 平时的默认脸（建议给一点微笑，见 docs/model-adaptation.md）
   "expressions": {},      // 按表情覆盖参数表（给哪个表情就整个替换哪个），优先级最高
-  "expressionFiles": {},  // 模型自带表情(.exp3.json)映射：{"sad": "A01.流泪"}
+  "expressionFiles": {},  // 模型自带表情(.exp3.json)映射：{"sad": "A01.流泪"}，exp3参数叠在内置表情上
                           // 值=model3.json Expressions清单里的Name，启动报告会打出可用清单
                           // 与内置表情同名的exp3不用配，自动采用
   "dizzyExtras": {}       // 晃晕特效附加参数（脸青/冒汗等，值=最大强度）
@@ -69,7 +69,9 @@
 
 ## 表情的三层优先级
 
-同一个表情（如sad），谁说了算：`expressions` 手写参数（整表覆盖）> 模型自带exp3（`expressionFiles` 映射的或同名自动匹配的）> 内置标准参数组合（fallback）。建模师调好的表情几乎总是更生动——模型带表情文件就优先用人家的，内置组合只是兜底。
+同一个表情（如sad），谁说了算：`expressions` 手写参数（整表覆盖）> 模型自带exp3（`expressionFiles` 映射的或同名自动匹配的，参数叠在内置表情上——exp3写了的参数听exp3的，没写的用内置补）> 内置标准参数组合（fallback）。建模师调好的表情几乎总是更生动——模型带表情文件就优先用人家的，内置组合只是兜底。
+
+不像情绪的exp3（道具/穿戴/特效开关）不用映射，走 `POST /expression` 按原名开关，见 docs/api.md。
 
 ## 日夜主题
 

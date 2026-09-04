@@ -18,6 +18,8 @@ export interface PetState {
   dizzyMeter: number
   dizzyUntil: number
   dizzyCooldownUntil: number
+  /** 模型自带表情的直通开关（POST /expression）：表情名 → 折算后的参数表 */
+  exp3Active: Record<string, Record<string, number>>
 }
 
 export function createPetState(): PetState {
@@ -38,5 +40,6 @@ export function createPetState(): PetState {
     dizzyMeter: 0,
     dizzyUntil: 0,
     dizzyCooldownUntil: 0,
+    exp3Active: {},
   }
 }

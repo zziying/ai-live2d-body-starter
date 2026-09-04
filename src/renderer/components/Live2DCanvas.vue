@@ -6,12 +6,12 @@ import { useChoreographer } from '../composables/useChoreographer'
 import { useBlink } from '../composables/useBlink'
 import { createPetState } from '../pet/state'
 import { createPipeline, setPipelineAngleScale, type FrameCtx } from '../pet/pipeline'
-import { buildExpressionTables, BUILTIN_EMOTIONS } from '../pet/expressions'
+import { buildExpressionTables, BUILTIN_MAP } from '../pet/expressions'
 import { buildModelProfile } from '../pet/profile'
-import { loadExp3Expressions, mapExp3ToEmotions } from '../pet/exp3'
+import { loadExp3Expressions, mapExp3ToEmotions, reportExp3 } from '../pet/exp3'
 import {
   setupPlugin, gazePlugin, headSpringPlugin, eyeOpennessPlugin,
-  expressionPlugin, attentionSmilePlugin, lipSyncPlugin,
+  expressionPlugin, exp3TogglePlugin, attentionSmilePlugin, lipSyncPlugin,
   thinkingFacePlugin, choreoApplyPlugin, dizzyPlugin,
   triggerAttention, DIZZY_DURATION,
 } from '../pet/plugins'
@@ -108,13 +108,14 @@ onMounted(async () => {
   const profile = buildModelProfile(model.internalModel.coreModel)
   setPipelineAngleScale(profile.angleScale)
 
-  // 表情三层优先级：config手写 > 模型自带exp3 > 内置标准参数组合
+  // 表情三层优先级：config手写 > 模型自带exp3（叠在内置上） > 内置标准参数组合
   const paramDefaults = Object.fromEntries(
     Object.entries(profile.ranges).map(([id, r]) => [id, r.def])
   )
-  const exp3All = await loadExp3Expressions(cfg.model.path, model.internalModel.settings, paramDefaults)
-  const exp3Overrides = mapExp3ToEmotions(exp3All, BUILTIN_EMOTIONS, cfg.expressionFiles)
-  const tables = buildExpressionTables({ ...exp3Overrides, ...cfg.expressions }, cfg.defaultFace)
+  const exp3Set = await loadExp3Expressions(cfg.model.path, model.internalModel.settings, paramDefaults)
+  const exp3Mapped = mapExp3ToEmotions(exp3Set.tables, BUILTIN_MAP, cfg.expressionFiles)
+  reportExp3(exp3Set, exp3Mapped.used)
+  const tables = buildExpressionTables({ ...exp3Mapped.tables, ...cfg.expressions }, cfg.defaultFace)
 
   // --- 管线：注册顺序即层叠顺序，dizzy最后（压倒一切） ---------------------
   const pipeline = createPipeline()
@@ -123,6 +124,7 @@ onMounted(async () => {
   pipeline.register(headSpringPlugin(state))
   pipeline.register(eyeOpennessPlugin(state, blink, tables))
   pipeline.register(expressionPlugin(state, tables))
+  pipeline.register(exp3TogglePlugin(state, paramDefaults, new Set(tables.allParams)))
   pipeline.register(attentionSmilePlugin(state))
   pipeline.register(lipSyncPlugin(state, cfg.tuning))
   pipeline.register(thinkingFacePlugin(state))
@@ -292,6 +294,15 @@ onMounted(async () => {
   // 工作心跳（hooks发来）→ 保持思考脸
   window.electronAPI?.onWorkingPing?.(() => {
     state.workingUntil = Date.now() + WORKING_TIMEOUT
+  })
+
+  // 模型自带表情直通开关（POST /expression）：开/关状态由main维护，这里只落参数
+  window.electronAPI?.onExpressionToggle?.((data) => {
+    if (data.clear) { state.exp3Active = {}; return }
+    const table = exp3Set.tables[data.name]
+    if (!table) { console.warn(`[exp3] 直通开关：模型没有表情"${data.name}"`); return }
+    if (data.on) state.exp3Active[data.name] = table
+    else delete state.exp3Active[data.name]
   })
 
   // 音频keep-alive：不少外放音箱空闲时休眠，唤醒延迟会吞掉说话的前几个字。

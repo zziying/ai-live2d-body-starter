@@ -165,6 +165,39 @@ export function expressionPlugin(state: PetState, tables: ExpressionTables): Pet
   }
 }
 
+// --- exp3 toggle: 模型自带表情的直通开关（POST /expression） ------------------
+// 建模师做的表情里有一半不是情绪：道具、穿戴、特效。硬塞进七个情绪词很别扭，
+// 所以单开一条通道按原名开关——可叠加、不互斥、不衰减，叠在情绪层之上。
+// 关掉时把它碰过的参数写回模型默认值（expression插件只重置它自己认识的参数，
+// 那些它认识的不用管，下一帧就被它接手了）。
+
+export function exp3TogglePlugin(
+  state: PetState,
+  defaults: Record<string, number>,
+  managedByExpression: Set<string>,
+): PetPlugin {
+  let prevParams = new Set<string>()
+
+  return {
+    name: 'exp3-toggle',
+    update(ctx) {
+      const cur = new Set<string>()
+      for (const table of Object.values(state.exp3Active)) {
+        for (const [id, val] of Object.entries(table)) {
+          cur.add(id)
+          if (state.isSpeaking && (id === 'ParamMouthOpenY' || id === 'ParamMouthForm')) continue
+          if (ctx.choreoActive.has(id)) continue
+          setParam(ctx.cm, id, val)
+        }
+      }
+      for (const id of prevParams) {
+        if (!cur.has(id) && !managedByExpression.has(id)) setParam(ctx.cm, id, defaults[id] ?? 0)
+      }
+      prevParams = cur
+    },
+  }
+}
+
 // --- attention smile: 瞟聊天气泡时轻轻眯眼笑 --------------------------------
 
 export function attentionSmilePlugin(state: PetState): PetPlugin {

@@ -17,7 +17,7 @@ export interface ExpressionTables {
   allParams: string[]
 }
 
-const BUILTIN_MAP: Record<string, Record<string, number>> = {
+export const BUILTIN_MAP: Record<string, Record<string, number>> = {
   happy: {
     ParamEyeLSmile: 1, ParamEyeRSmile: 1,
     ParamMouthForm: 1, ParamMouthOpenY: 0.4,

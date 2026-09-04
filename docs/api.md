@@ -37,6 +37,17 @@ curl -X POST http://127.0.0.1:3470/choreograph -H "X-Pet-Token: $TOKEN" -d '{"ac
 
 动作：`nod`(点头) `shake`(摇头) `surprise`(惊讶) `thinking`(歪头思考) `shy`(害羞低头) `celebrate`(庆祝摇摆)。有冷却（全局10秒/同动作30秒），密集触发会被静默吞掉，正常。
 
+### POST /expression — 模型自带表情直通开关
+
+```bash
+curl -X POST http://127.0.0.1:3470/expression -H "X-Pet-Token: $TOKEN" -d '{"name":"游戏机","on":true}'
+curl -X POST http://127.0.0.1:3470/expression -H "X-Pet-Token: $TOKEN" -d '{"name":"眼镜"}'       # 省略on=切换
+curl -X POST http://127.0.0.1:3470/expression -H "X-Pet-Token: $TOKEN" -d '{"clear":true}'         # 全关
+curl http://127.0.0.1:3470/expression -H "X-Pet-Token: $TOKEN"                                     # 读状态+清单
+```
+
+`name` 是模型自带 `.exp3.json` 的表情名（启动时体检报告列出的那些；名字不对会400并附清单）。跟 `/emotion` 的区别：情绪是互斥的、会淡掉；这条通道是**开关**——可叠加、不衰减、叠在情绪之上，关掉时参数写回模型默认值。建模师做的道具、眼镜、星星眼之类不是情绪的东西走这里，ta手里拿什么、戴不戴眼镜，都成了ta可以自己决定的事。
+
 ### POST /speak — 说话（需配置TTS）
 
 ```bash
