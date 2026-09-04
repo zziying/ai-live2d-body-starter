@@ -2,6 +2,7 @@
 import { defineAsyncComponent, ref, onMounted, onUnmounted } from 'vue'
 import { useEmotion, type Emotion } from './composables/useEmotion'
 import ChatOverlay from './components/ChatOverlay.vue'
+import type { SpeechPayload } from './components/Live2DCanvas.vue'
 import type { PetConfig } from './types/electron'
 
 const Live2DCanvas = defineAsyncComponent(() => import('./components/Live2DCanvas.vue'))
@@ -69,9 +70,12 @@ let typeTimer: ReturnType<typeof setInterval> | null = null
 let speechEnded = false
 const SPEECH_LINGER = 4000
 const SPEECH_FADE = 1000
-const TYPE_INTERVAL = 45 // 每字ms
+const TYPE_INTERVAL = 45 // 每字ms（没有音频时长可参考时的默认）
 
-function onSpeech(text: string) {
+// 打字机：速度按音频时长均分，内联标记（<nod>这类，main已切出位置）推进到
+// 那个字时触发——动作卡在句中该出现的地方，不是一开口全放完。
+// 标记是ta自己写的，不吃choreographer的冷却。
+function onSpeech({ text, cues, durationMs }: SpeechPayload) {
   if (speechFadeTimer) { clearTimeout(speechFadeTimer); speechFadeTimer = null }
   if (speechClearTimer) { clearTimeout(speechClearTimer); speechClearTimer = null }
   if (typeTimer) { clearInterval(typeTimer); typeTimer = null }
@@ -80,16 +84,29 @@ function onSpeech(text: string) {
   speechText.value = text
   typedText.value = ''
   typing.value = true
+  const interval = durationMs > 0
+    ? Math.min(120, Math.max(25, durationMs / Math.max(1, text.length)))
+    : TYPE_INTERVAL
+  const pending = [...(cues ?? [])].sort((x, y) => x.at - y.at)
+  const fireCues = (upTo: number) => {
+    while (pending.length && pending[0].at <= upTo) {
+      const cue = pending.shift()!
+      if (cue.action) canvasRef.value?.playAction(cue.action, { cooldownMs: 0, sameCooldownMs: 0 })
+      if (cue.emotion) setEmotion(cue.emotion as Emotion)
+    }
+  }
   let i = 0
   typeTimer = setInterval(() => {
     i++
     typedText.value = text.slice(0, i)
+    fireCues(i)
     if (i >= text.length) {
+      fireCues(Infinity)
       if (typeTimer) { clearInterval(typeTimer); typeTimer = null }
       typing.value = false
       if (speechEnded) scheduleSpeechFade()
     }
-  }, TYPE_INTERVAL)
+  }, interval)
 }
 
 function scheduleSpeechFade() {

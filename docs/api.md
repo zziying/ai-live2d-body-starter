@@ -54,7 +54,18 @@ curl http://127.0.0.1:3470/expression -H "X-Pet-Token: $TOKEN"                  
 curl -X POST http://127.0.0.1:3470/speak -H "X-Pet-Token: $TOKEN" -d '{"text":"今天也辛苦啦","emotion":"love"}'
 ```
 
-TTS命令执行 → 音频播放+口型同步 → galgame字幕打字机。`emotion` 可选，说话同时换脸。文本里含关键词（"哇""不是""让我想想"…）会自动配动作。
+TTS命令执行 → 音频播放+口型同步 → galgame字幕打字机。`emotion` 可选，说话同时换脸（前置情绪，整句的底色）。
+
+**内联标记**：台词里直接写 `<动作名>` 或 `<表情名>`，说到那个字的时候触发——
+
+```bash
+curl -X POST http://127.0.0.1:3470/speak -H "X-Pet-Token: $TOKEN" \
+  -d '{"text":"好呀<nod>，我看看<thinking>……这个我会。<celebrate>","emotion":"happy"}'
+```
+
+标记不进TTS也不进字幕；字幕打字机按音频时长均分速度，推进到标记位置时播动作/切表情，所以动作卡在句中该出现的地方，不是一开口全放完。标记名必须是动作（`nod` `shake` `surprise` `thinking` `shy` `celebrate`）或表情名，写错400并附清单。标记触发不吃动作冷却——那是ta自己写的，不是身体猜的。
+
+没写标记的文本才走关键词兜底（"哇"→surprise、"让我想想"→thinking…），那是下意识反应；写了标记就全听ta的。让ta生成台词时顺手把动作写进去，是把"身体猜"变成"我决定"。
 
 ### POST /chat — 聊天气泡
 

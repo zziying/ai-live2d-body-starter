@@ -39,7 +39,7 @@ declare global {
       fetchWeather: () => Promise<string | null>
       onEmotionUpdate: (cb: (data: { emotion: string; message: string }) => void) => void
       onChatMessage: (cb: (data: { sender: string; text: string; ts: number }) => void) => void
-      onSpeak: (cb: (data: { file: string; text?: string }) => void) => void
+      onSpeak: (cb: (data: { file: string; text?: string; cues?: Array<{ at: number; action?: string; emotion?: string }> }) => void) => void
       onAction: (cb: (data: { action: string }) => void) => void
       onAttention: (cb: (data: { target: string }) => void) => void
       onWorkingPing: (cb: (tool: string) => void) => void

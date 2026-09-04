@@ -78,6 +78,8 @@ pnpm dev
 TOKEN=$(cat .pet-token)
 # 让ta开心
 curl -X POST http://127.0.0.1:3470/emotion -H "X-Pet-Token: $TOKEN" -d '{"emotion":"happy","action":"celebrate"}'
+# 说话（配了TTS之后）：台词里内联<动作>，说到那个字时触发
+curl -X POST http://127.0.0.1:3470/speak -H "X-Pet-Token: $TOKEN" -d '{"text":"好呀<nod>，我看看<thinking>","emotion":"happy"}'
 # 弹个聊天气泡（ta会低头瞟一眼，眯眼笑）
 curl -X POST http://127.0.0.1:3470/chat -H "X-Pet-Token: $TOKEN" -d '{"sender":"user","text":"在吗"}'
 # 看看ta现在长什么样（返回PNG截图）

@@ -261,6 +261,29 @@ const ACTION_KEYWORDS: [RegExp, string][] = [
   [/害羞|不好意思|嘿嘿|脸红/, 'shy'],
 ]
 
+// 内联标记：台词里写 <nod> <shy> 这类标记 = ta自己决定动作/情绪卡在哪个字上。
+// 像编译器切段：文本段拼成干净台词（去TTS和字幕），标记记下它在干净文本里的
+// 字符位置（cue），renderer的打字机推进到那个位置时触发。有标记就不做关键词检测——
+// 身体不再替ta猜。标记名=动作名或表情名，别的一律400（静默吞掉会让ta以为播了）。
+interface SpeechCue { at: number; action?: string; emotion?: string }
+
+function parseSpeechTags(raw: string): { text: string; cues: SpeechCue[]; bad: string[] } {
+  const cues: SpeechCue[] = []
+  const bad: string[] = []
+  let text = ''
+  let last = 0
+  for (const m of raw.matchAll(/<([^<>\s]{1,32})>/g)) {
+    text += raw.slice(last, m.index)
+    last = (m.index ?? 0) + m[0].length
+    const tag = m[1]
+    if (VALID_ACTIONS.has(tag)) cues.push({ at: text.length, action: tag })
+    else if (VALID_EMOTIONS.has(tag)) cues.push({ at: text.length, emotion: tag })
+    else bad.push(tag)
+  }
+  text += raw.slice(last)
+  return { text, cues, bad }
+}
+
 function detectAction(text: string): string {
   for (const [re, name] of ACTION_KEYWORDS) {
     if (re.test(text)) return name
@@ -285,7 +308,7 @@ const API_HELP = {
     'GET  /': '这份帮助',
     'POST /emotion': '{"emotion":"happy|love|shy|sad|angry|gloomy|neutral","message":"...","action":"nod|..."} 推表情',
     'GET  /emotion': '读当前情绪',
-    'POST /speak': '{"text":"...","emotion":"..."} TTS说话+口型（需配置tts.command）',
+    'POST /speak': '{"text":"好呀<nod>，我看看<thinking>","emotion":"..."} TTS说话+口型（需配置tts.command）。文本里可内联<动作名>/<表情名>标记，说到那个字时触发；标记不进TTS和字幕',
     'POST /chat': '{"sender":"pet"|"user","text":"..."} 聊天气泡',
     'POST /choreograph': '{"action":"nod|shake|surprise|thinking|shy|celebrate"} 播动作',
     'POST /expression': '{"name":"模型自带表情名","on":true|false} 直通开关（省略on=切换；{"clear":true}全关）。道具/穿戴/特效这类不是情绪的表情走这里，可叠加不衰减',
@@ -351,26 +374,35 @@ const httpServer = createServer((req, res) => {
     readJsonBody(req, (data) => {
       if (!data.text) { bad(400, 'no text'); return }
       if (data.emotion && !VALID_EMOTIONS.has(data.emotion)) { bad(400, emotionErr(data.emotion)); return }
+      const parsed = parseSpeechTags(String(data.text))
+      if (parsed.bad.length) {
+        bad(400, `未知标记 <${parsed.bad.join('> <')}> —— 动作: ${[...VALID_ACTIONS].join('/')}；表情: ${[...VALID_EMOTIONS].join('/')}`)
+        return
+      }
+      if (!parsed.text.trim()) { bad(400, '去掉标记后没有台词'); return }
       if (!config.tts.command || config.tts.command.length === 0) {
         bad(501, '未配置TTS —— 在pet.config.json的tts.command里配一条命令，见docs/config.md')
         return
       }
       // TTS契约：命令跑完后音频文件出现在 tts.output 路径（相对项目根），退出码0
       const cmd = config.tts.command
-      const args = cmd.slice(1).map(a => a.replaceAll('{text}', String(data.text)))
+      const args = cmd.slice(1).map(a => a.replaceAll('{text}', parsed.text))
       execFile(cmd[0], args, { timeout: 90_000, cwd: PROJECT_ROOT }, (err, _stdout, stderr) => {
         if (err) { bad(500, `TTS命令失败: ${stderr || err.message}`); return }
         // 音频不走HTTP：<audio>标签带不了token头，跨域也没CORS头可用（那是故意的）。
         // renderer通过IPC读文件做Blob URL播放，见 read-speak-audio
         // emotion可以搭车 —— 一边说一边换脸
         if (data.emotion) {
-          latestEmotion = { emotion: data.emotion, message: data.text || '', timestamp: Date.now() }
+          latestEmotion = { emotion: data.emotion, message: parsed.text, timestamp: Date.now() }
           mainWindow?.webContents.send('emotion-update', latestEmotion)
         }
-        const speakAction = detectAction(data.text)
-        if (speakAction) mainWindow?.webContents.send('action-trigger', { action: speakAction })
-        mainWindow?.webContents.send('speak', { file: config.tts.output, text: data.text })
-        ok()
+        // 没写标记才走关键词兜底（下意识反应）；写了标记就全听ta的
+        if (!parsed.cues.length) {
+          const speakAction = detectAction(parsed.text)
+          if (speakAction) mainWindow?.webContents.send('action-trigger', { action: speakAction })
+        }
+        mainWindow?.webContents.send('speak', { file: config.tts.output, text: parsed.text, cues: parsed.cues })
+        ok({ ok: true, text: parsed.text, cues: parsed.cues })
       })
     }, () => bad())
     return

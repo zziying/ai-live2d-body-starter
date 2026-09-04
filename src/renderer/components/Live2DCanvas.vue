@@ -22,8 +22,11 @@ const props = defineProps<{
   config: PetConfig
 }>()
 
+export interface SpeechCue { at: number; action?: string; emotion?: string }
+export interface SpeechPayload { text: string; cues: SpeechCue[]; durationMs: number }
+
 const emit = defineEmits<{
-  (e: 'speech', text: string): void
+  (e: 'speech', payload: SpeechPayload): void
   (e: 'speech-end'): void
 }>()
 
@@ -344,7 +347,6 @@ onMounted(async () => {
     state.analyser = analyser
 
     state.isSpeaking = true
-    if (data.text) emit('speech', data.text)
     const end = () => {
       state.isSpeaking = false; state.analyser = null; currentAudio = null
       URL.revokeObjectURL(blobUrl)
@@ -352,7 +354,14 @@ onMounted(async () => {
     }
     audio.onended = end
     audio.onerror = end
-    audio.play().catch(() => { state.isSpeaking = false; emit('speech-end') })
+    // 字幕打字机等音频真的开始播才起步，并把时长带过去——打字速度按时长均分，
+    // 内联标记（cues）才能大致卡在说到那个字的时候
+    audio.play().then(() => {
+      if (data.text) {
+        const durationMs = Number.isFinite(audio.duration) ? audio.duration * 1000 : 0
+        emit('speech', { text: data.text, cues: data.cues ?? [], durationMs })
+      }
+    }).catch(() => { state.isSpeaking = false; emit('speech-end') })
   })
 })
 
@@ -362,7 +371,7 @@ onUnmounted(() => {
 })
 
 defineExpose({
-  playAction: (name: string) => choreographer.play(name),
+  playAction: (name: string, opts?: { cooldownMs?: number; sameCooldownMs?: number }) => choreographer.play(name, opts),
 })
 </script>
 
