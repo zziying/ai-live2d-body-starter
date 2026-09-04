@@ -19,6 +19,7 @@ interface PetConfig {
     alwaysOnTop: boolean
     fullscreen: boolean
     display: 'primary' | 'secondary'
+    zoom: number
   }
   port: number
   name: string
@@ -42,7 +43,7 @@ const DEFAULT_CONFIG: PetConfig = {
   model: { path: 'model/your-model.model3.json', heightRatio: 1.0, x: 0.5, y: 0.5 },
   window: {
     width: 420, height: 640, transparent: true,
-    alwaysOnTop: true, fullscreen: false, display: 'primary',
+    alwaysOnTop: true, fullscreen: false, display: 'primary', zoom: 1,
   },
   port: 3470,
   name: 'Pet',
@@ -541,6 +542,15 @@ function createWindow() {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+
+  // 整体缩放：面板/字幕是按桌面角落的小窗设计的，铺满副屏会显小——
+  // 5寸副屏1.5~1.6合适。缩放的是CSS像素，模型照样铺满窗口
+  const zoom = Number(config.window.zoom) || 1
+  if (zoom !== 1) {
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindow?.webContents.setZoomFactor(zoom)
+    })
   }
 
   // renderer的console(warn及以上)转发到main stdout —— headless也能看到报错

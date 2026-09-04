@@ -17,7 +17,8 @@
     "transparent": true,   // 透明背景桌宠悬浮（顶部中间有隐形拖动条，hover可见）
     "alwaysOnTop": true,   // 置顶
     "fullscreen": false,   // true=铺满整个屏幕（配副屏用，macOS会盖住菜单栏）
-    "display": "primary"   // "secondary"=有副屏时去副屏
+    "display": "primary",  // "secondary"=有副屏时去副屏
+    "zoom": 1.0            // 整体缩放（面板/字幕/气泡）。铺满小副屏显小就调1.5~1.6，模型不受影响
   },
 
   "port": 3470,            // 身体API端口

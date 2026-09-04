@@ -12,7 +12,8 @@
     "transparent": true,
     "alwaysOnTop": true,
     "fullscreen": false,
-    "display": "primary"
+    "display": "primary",
+    "zoom": 1.0
   },
   "port": 3470,
   "name": "Pet",

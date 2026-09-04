@@ -8,6 +8,7 @@ export interface PetConfig {
     alwaysOnTop: boolean
     fullscreen: boolean
     display: 'primary' | 'secondary'
+    zoom: number
   }
   port: number
   name: string
