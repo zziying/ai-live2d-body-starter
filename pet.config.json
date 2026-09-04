@@ -1,21 +1,21 @@
 {
   "$comment": "桌宠唯一配置文件。改完重启生效（pnpm dev 会自动重启main进程）。各字段说明见 docs/config.md",
   "model": {
-    "path": "model/ellot/ellot.model3.json",
-    "heightRatio": 2.6,
+    "path": "model/your-model.model3.json",
+    "heightRatio": 1.0,
     "x": 0.5,
-    "y": 1.35
+    "y": 0.5
   },
   "window": {
     "width": 420,
     "height": 640,
     "transparent": true,
     "alwaysOnTop": true,
-    "fullscreen": true,
-    "display": "secondary"
+    "fullscreen": false,
+    "display": "primary"
   },
   "port": 3470,
-  "name": "Ellot",
+  "name": "Pet",
   "inject": {
     "mode": "none",
     "tmuxTarget": "claude:0.0",
@@ -27,14 +27,8 @@
     }
   },
   "tts": {
-    "command": [
-      "bash",
-      "-c",
-      "~/alarm-env/bin/python3 ~/projects/desktop-pet/tts.py \"$1\" && cp ~/projects/desktop-pet/audio/speak.wav ~/projects/live2d-pet-starter/audio/speak.wav",
-      "_",
-      "{text}"
-    ],
-    "output": "audio/speak.wav"
+    "command": null,
+    "output": "audio/speak.mp3"
   },
   "panels": {
     "enabled": false,
@@ -49,12 +43,6 @@
   },
   "defaultFace": {},
   "expressions": {},
-  "expressionFiles": {
-    "love": "하트눈",
-    "shy": "홍조",
-    "sad": "눈물",
-    "angry": "화남",
-    "gloomy": "음침"
-  },
+  "expressionFiles": {},
   "dizzyExtras": {}
 }
