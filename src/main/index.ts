@@ -544,15 +544,6 @@ function createWindow() {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // 整体缩放：面板/字幕是按桌面角落的小窗设计的，铺满副屏会显小——
-  // 5寸副屏1.5~1.6合适。缩放的是CSS像素，模型照样铺满窗口
-  const zoom = Number(config.window.zoom) || 1
-  if (zoom !== 1) {
-    mainWindow.webContents.on('did-finish-load', () => {
-      mainWindow?.webContents.setZoomFactor(zoom)
-    })
-  }
-
   // renderer的console(warn及以上)转发到main stdout —— headless也能看到报错
   mainWindow.webContents.on('console-message', (_e, level, message) => {
     if (level >= 2) console.log('[renderer]', message)

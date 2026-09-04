@@ -361,7 +361,10 @@ onMounted(async () => {
         const durationMs = Number.isFinite(audio.duration) ? audio.duration * 1000 : 0
         emit('speech', { text: data.text, cues: data.cues ?? [], durationMs })
       }
-    }).catch(() => { state.isSpeaking = false; emit('speech-end') })
+    }).catch((e) => {
+      console.error('[speak] 音频播放失败:', (e as Error).message)
+      state.isSpeaking = false; emit('speech-end')
+    })
   })
 })
 

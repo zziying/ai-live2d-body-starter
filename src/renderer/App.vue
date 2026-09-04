@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref, onMounted, onUnmounted } from 'vue'
+import { defineAsyncComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useEmotion, type Emotion } from './composables/useEmotion'
 import ChatOverlay from './components/ChatOverlay.vue'
 import type { SpeechPayload } from './components/Live2DCanvas.vue'
@@ -10,6 +10,11 @@ const Live2DCanvas = defineAsyncComponent(() => import('./components/Live2DCanva
 const { currentEmotion, setEmotion } = useEmotion()
 const config = ref<PetConfig | null>(null)
 const canvasRef = ref<any>(null)
+
+// UI缩放（config window.zoom）：面板/字幕/气泡是按桌面角落的小窗设计的，铺满
+// 副屏会显小。只用CSS zoom缩这几层，canvas不碰——webContents.setZoomFactor
+// 会让透明全屏窗的合成器报SharedImage错、截图时好时坏，别走那条路
+const uiZoom = computed(() => Number(config.value?.window?.zoom) || 1)
 
 // --- 日夜：7:00-19:00白天，其余夜里。夜里整套CSS变量换暗玻璃+浅字 ---
 function timePeriod(): 'day' | 'night' {
@@ -219,7 +224,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
     </div>
 
     <!-- 聊天气泡（对话框出现时让位） -->
-    <ChatOverlay :lifted="!!speechText" />
+    <ChatOverlay :lifted="!!speechText" :style="{ zoom: uiZoom }" />
 
     <!-- 键盘调试提示 -->
     <div v-if="debugLabel" class="debug-label">{{ debugLabel }}</div>
@@ -351,6 +356,12 @@ html, body, #app {
 }
 
 /* galgame对话框 —— 底部宽框、名牌、打字机 */
+.left-col,
+.dialog-box,
+.debug-label {
+  zoom: v-bind(uiZoom);
+}
+
 .dialog-box {
   position: absolute;
   bottom: 4%;
