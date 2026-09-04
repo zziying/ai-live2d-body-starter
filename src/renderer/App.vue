@@ -184,7 +184,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
 <template>
   <div class="app-container" :class="{ night: isNight }">
-    <!-- 背景图（换图2.5s交叉淡入；没图时窗口保持透明） -->
+    <!-- 背景：有图用图（换图2.5s交叉淡入）；开了背景但目录里没图时铺内置暖色渐变
+         （日夜各一套跟主题走）。backgrounds.enabled=false 才是透明悬浮 -->
+    <div v-if="config?.backgrounds?.enabled && !bgUrl" class="bg-layer bg-default" />
     <Transition name="bg-fade">
       <div
         v-if="config?.backgrounds?.enabled && bgUrl"
@@ -280,6 +282,21 @@ html, body, #app {
   inset: 0;
   background-size: cover;
   background-position: center;
+}
+
+/* 内置默认背景：暖色渐变 + 两团柔光。白天奶油橘→玫瑰米，夜里暖梅紫→深棕 */
+.bg-default {
+  background:
+    radial-gradient(60% 55% at 18% 12%, rgba(255, 244, 214, 0.9), transparent 70%),
+    radial-gradient(50% 45% at 85% 90%, rgba(244, 196, 186, 0.7), transparent 70%),
+    linear-gradient(160deg, #fbe9d4 0%, #f5d6c3 48%, #eac9c6 100%);
+  transition: background 1s;
+}
+.app-container.night .bg-default {
+  background:
+    radial-gradient(60% 55% at 18% 12%, rgba(120, 90, 110, 0.55), transparent 70%),
+    radial-gradient(50% 45% at 85% 90%, rgba(150, 100, 90, 0.4), transparent 70%),
+    linear-gradient(160deg, #3b2f42 0%, #4a3548 50%, #2f2430 100%);
 }
 
 .bg-fade-enter-active,

@@ -17,32 +17,35 @@ export interface ExpressionTables {
   allParams: string[]
 }
 
+// 内置组合刻意收着：建模师画好的默认脸是最好看的底子，我们只在上面轻轻推。
+// 每个参数拉满在有的模型上是^^，在有的模型上是半眯眼露牙的坏笑（三个实测模型
+// 两个嫌重）。想要更用力的表情，在 pet.config.json 的 expressions 里按模型写。
 export const BUILTIN_MAP: Record<string, Record<string, number>> = {
   happy: {
-    ParamEyeLSmile: 1, ParamEyeRSmile: 1,
-    ParamMouthForm: 1, ParamMouthOpenY: 0.4,
+    ParamEyeLSmile: 0.6, ParamEyeRSmile: 0.6,
+    ParamMouthForm: 0.8, ParamMouthOpenY: 0.2,
   },
   love: {
-    ParamEyeLSmile: 1, ParamEyeRSmile: 1,
-    ParamMouthForm: 0.8,
+    ParamEyeLSmile: 0.7, ParamEyeRSmile: 0.7,
+    ParamMouthForm: 0.7,
     ParamCheek: 1,
   },
   shy: {
-    ParamEyeLSmile: 0.5, ParamEyeRSmile: 0.5,
+    ParamEyeLSmile: 0.4, ParamEyeRSmile: 0.4,
     ParamMouthForm: 0.3,
-    ParamCheek: 1,
+    ParamCheek: 0.8,
   },
   sad: {
-    ParamBrowLY: -0.8, ParamBrowRY: -0.8,
-    ParamMouthForm: -0.8,
+    ParamBrowLY: -0.7, ParamBrowRY: -0.7,
+    ParamMouthForm: -0.7,
   },
   angry: {
     ParamBrowLY: -1, ParamBrowRY: -1,
     ParamBrowLAngle: -1, ParamBrowRAngle: -1,
-    ParamMouthForm: -1, ParamMouthOpenY: 0.3,
+    ParamMouthForm: -0.9, ParamMouthOpenY: 0.2,
   },
   gloomy: {
-    ParamEyeLOpen: 0.5, ParamEyeROpen: 0.5,
+    ParamEyeLOpen: 0.55, ParamEyeROpen: 0.55,
     ParamBrowLY: -0.5, ParamBrowRY: -0.5,
     ParamMouthForm: -0.3,
   },
